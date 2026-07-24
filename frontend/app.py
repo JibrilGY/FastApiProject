@@ -43,7 +43,6 @@ with col1:
         help="Yolcunun sosyal statüsü (Makine öğrenmesi için kritik!)"
     )
 
-    age = st.slider("Yaş", 0.0, 80.0, 28.0, 1.0)
     fare = st.slider("Bilet Ücreti (Fare)", 0.0, 500.0, 32.2, 1.0)
 
 with col2:
