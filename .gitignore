@@ -1,0 +1,13 @@
+# Sanal Ortam
+.venv/
+venv/
+ENV/
+
+# Python Önbellekleri
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyCharm / IDE Dosyaları
+.idea/
+.vscode/
