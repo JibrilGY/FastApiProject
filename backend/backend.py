@@ -17,7 +17,6 @@ class PassengerInput(BaseModel):
   Pclass: int
   Sex: str
   Title: str
-  Name: str
   Age: float
   Fare: float
   SibSp: int

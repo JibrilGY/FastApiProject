@@ -45,12 +45,6 @@ with col2:
   sibsp = st.number_input("Kardeş / Eş Sayısı (SibSp)", 0, 8, 0)
   parch = st.number_input("Ebeveyn / Çocuk Sayısı (Parch)", 0, 6, 0)
 
-  name = st.text_input(
-      "Yolcu Adı (Sadece Gösterim)",
-      "John Doe",
-      help="Sadece kayıt içindir, tahmin modelini etkilemez.",
-  )
-
   cabin = st.text_input(
       "Kabin Numarası (Opsiyonel)",
       "",
@@ -70,7 +64,6 @@ if submit_button:
       "SibSp": sibsp,
       "Parch": parch,
       "Cabin": cabin if cabin.strip() != "" else None,
-      "Name": name,
   }
 
   try:
