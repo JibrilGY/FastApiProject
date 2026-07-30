@@ -2,43 +2,46 @@ import os
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from pydantic import create_model
+from schemas import StandardResponse, StudentInput
 
-router = APIRouter(prefix="/predict", tags=["Student Model"])
+router = APIRouter(prefix="/student", tags=["Student Placement Model"])
 
-# Path to the student pipeline model file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "student_pipeline.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "student", "xg_model.pkl")
 
-# Load the model and create a dynamic schema using feature_names_in_
+model = None
+
 try:
-  model = joblib.load(MODEL_PATH)
-  expected_cols = model.named_steps["preprocessor"].feature_names_in_
-  field_definitions = {col: (float, ...) for col in expected_cols}
-  DynamicStudentInput = create_model("StudentInput", **field_definitions)
+    model = joblib.load(MODEL_PATH)
+    print("✅ Student model loaded successfully!")
 except Exception as e:
-  model = None
-  DynamicStudentInput = create_model("StudentInput")
+    print(f"❌ Student Loading Error: {e}")
+    model = None
 
 
-@router.post("/student")
-def predict_student(data: DynamicStudentInput):
-  if model is None:
-    raise HTTPException(
-        status_code=500, detail="Student model could not be loaded."
-    )
+@router.post("/predict", response_model=StandardResponse)
+def predict_student(data: StudentInput):
+    if not model:
+        raise HTTPException(
+            status_code=500, detail="Student model could not be loaded!"
+        )
 
-  try:
-    # Convert Pydantic data to a DataFrame
-    input_df = pd.DataFrame([data.model_dump()])
+    try:
+        input_df = pd.DataFrame([data.model_dump()])
 
-    # Perform prediction
-    prediction = model.predict(input_df)
+        if hasattr(model, "feature_names_in_"):
+            input_df = input_df[model.feature_names_in_]
 
-    return {
-        "model": "Student Pipeline",
-        "prediction": int(prediction[0]),
-        "status": "success",
-    }
-  except Exception as e:
-    raise HTTPException(status_code=400, detail=str(e))
+        prediction = model.predict(input_df)[0]
+        probability = model.predict_proba(input_df)[0].tolist()
+
+        return StandardResponse(
+            status="success",
+            prediction=int(prediction),
+            probability={
+                "placed": round(probability[1], 4),
+                "not_placed": round(probability[0], 4),
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

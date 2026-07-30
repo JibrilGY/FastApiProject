@@ -13,9 +13,9 @@ model = None
 
 try:
     model = joblib.load(MODEL_PATH)
-    print("✅ Bankloan model başarıyla yüklendi!")
+    print("✅ Bankloan model loaded successfully!")
 except Exception as e:
-    print(f"❌ Bankloan Yükleme Hatası: {e}")
+    print(f"❌ Bankloan Loading Error: {e}")
     model = None
 
 
@@ -23,19 +23,17 @@ except Exception as e:
 def predict_bankloan(data: BankloanInput):
     if not model:
         raise HTTPException(
-            status_code=500, detail="Bankloan model yüklenemedi!"
+            status_code=500, detail="Bankloan model could not be loaded.!"
         )
 
     try:
         input_df = pd.DataFrame([data.model_dump()])
 
-        # Kolon adı eşleştirmesi (CD_Account -> CD.Account)
         rename_mapping = {
             "CD_Account": "CD.Account"
         }
         input_df = input_df.rename(columns=rename_mapping)
 
-        # 🔑 KRİTİK ÇÖZÜM: Modelin eğitimde kullandığı kolon sırasını ve adlarını zorunlu tut
         if hasattr(model, "feature_names_in_"):
             input_df = input_df[model.feature_names_in_]
 

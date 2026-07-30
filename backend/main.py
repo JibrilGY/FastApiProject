@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import bankloan, cancer_knn, cancer_svm, drug, student, titanic
 
-app = FastAPI(title="Multi-Model ML Platformu")
+app = FastAPI(title="Multi-Model ML Platform")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Router'ları ekliyoruz
+# Adding Routers
 app.include_router(titanic.router)
 app.include_router(bankloan.router)
 app.include_router(cancer_svm.router)

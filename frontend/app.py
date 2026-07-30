@@ -5,6 +5,7 @@ st.set_page_config(
     page_title="Multi-Model ML Platform",
     page_icon="🤖",
     layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
 st.title("🚀 Machine Learning Prediction Platform")
