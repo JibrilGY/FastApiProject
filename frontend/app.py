@@ -2,52 +2,52 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="Multi-Model ML Platformu",
+    page_title="Multi-Model ML Platform",
     page_icon="🤖",
     layout="centered",
 )
 
-st.title("🚀 Makine Öğrenmesi Tahmin Platformu")
+st.title("🚀 Machine Learning Prediction Platform")
 st.markdown(
-    "Hoş geldiniz! Bu platform, FastAPI tabanlı arka uç servisleri ve"
-    " Scikit-Learn Pipeline yapıları üzerine kurulmuştur."
+    "Welcome! This platform is built on FastAPI-based backend services "
+    "and Scikit-Learn Pipeline architectures."
 )
 st.info(
-    "👉 Modeller arasında geçiş yapmak için sol menüyü (sidebar) kullanabilirsiniz."
+    "👉 Use the sidebar to switch between different models."
 )
 
-st.markdown("### 📊 Sistemde Yer Alan Modeller:")
+st.markdown("### 📊 Available Models in the System:")
 
-# Backend bağlantı kontrolü ve model listesi
+# Backend connection check and model list
 try:
-  response = requests.get("http://127.0.0.1:8000/models", timeout=2)
-  if response.status_code == 200:
-    raw_list = response.json().get("models", [])
-    model_list = [m for m in raw_list if "model_columns" not in m]
-    st.success(f"✅ Backend bağlantısı aktif! Aktif Model Sayısı: {len(model_list)}")
-  else:
-    st.warning("⚠️ Backend'den model listesi alınamadı.")
+    response = requests.get("http://127.0.0.1:8000/models", timeout=2)
+    if response.status_code == 200:
+        raw_list = response.json().get("models", [])
+        model_list = [m for m in raw_list if "model_columns" not in m]
+        st.success(f"✅ Backend connection active! Active Models Count: {len(model_list)}")
+    else:
+        st.warning("⚠️ Could not retrieve model list from backend.")
 except Exception:
-  st.error(
-      "⚠️ **Bağlantı Hatası:** FastAPI sunucusu çalışmıyor."
-      " (`uvicorn main:app --reload` komutuyla başlattığından emin ol)"
-  )
+    st.error(
+        "⚠️ **Connection Error:** FastAPI server is not running. "
+        "(Make sure you started it with `uvicorn main:app --reload`)"
+    )
 
 st.divider()
 
 col1, col2, col3 = st.columns(3)
 with col1:
-  st.markdown("#### 🚢 Titanic")
-  st.write("Yolcu hayatta kalma analizi.")
-  st.markdown("#### 🎗️ Kanser (SVM)")
-  st.write("SVM tabanlı tümör teşhisi.")
+    st.markdown("#### 🚢 Titanic")
+    st.write("Passenger survival analysis.")
+    st.markdown("#### 🎗️ Cancer (SVM)")
+    st.write("SVM-based tumor diagnosis.")
 with col2:
-  st.markdown("#### 💳 Banka Kredisi")
-  st.write("Kredi onay risk analizi.")
-  st.markdown("#### 🎗️ Kanser (KNN)")
-  st.write("KNN tabanlı tümör teşhisi.")
+    st.markdown("#### 💳 Bank Loan")
+    st.write("Loan approval risk analysis.")
+    st.markdown("#### 🎗️ Cancer (KNN)")
+    st.write("KNN-based tumor diagnosis.")
 with col3:
-  st.markdown("#### 💊 Drug200")
-  st.write("Hasta ilaç sınıflandırması.")
-  st.markdown("#### 🎓 Öğrenci Durumu")
-  st.write("Öğrenci başarı analizi.")
+    st.markdown("#### 💊 Drug200")
+    st.write("Patient drug classification.")
+    st.markdown("#### 🎓 Student Status")
+    st.write("Student performance analysis.")

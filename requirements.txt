@@ -9,3 +9,5 @@ streamlit
 seaborn
 matplotlib
 numpy
+shap
+xgboost
