@@ -24,3 +24,9 @@ class StudentInput(BaseModel):
     previous_score: float = Field(..., description="Previous exam score or GPA")
     attendance: float = Field(..., description="Attendance rate percentage")
     sleep_hours: float = Field(..., description="Daily sleep hours")
+
+class DrugInput(BaseModel):
+    Age: int
+    BP: str  # Örn: 'HIGH', 'LOW', 'NORMAL'
+    Cholesterol: str  # Örn: 'HIGH', 'NORMAL'
+    Na_to_K: float
