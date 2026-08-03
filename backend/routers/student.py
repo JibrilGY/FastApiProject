@@ -2,7 +2,7 @@ import os
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from schemas import StandardResponse, StudentInput
+from app_schemas import StandardResponse, StudentInput
 
 router = APIRouter(prefix="/student", tags=["Student Placement Model"])
 

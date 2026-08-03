@@ -28,11 +28,17 @@ def list_models():
       os.path.dirname(os.path.abspath(__file__)), "models"
   )
   if not os.path.exists(models_dir):
-    return {"models": []}
+    return {"models": [], "count": 0}
 
-  files = [
-      f.replace(".pkl", "")
-      for f in os.listdir(models_dir)
-      if f.endswith(".pkl")
-  ]
-  return {"models": files}
+  files = []
+  for root, dirs, filenames in os.walk(models_dir):
+    for f in filenames:
+      if f.endswith(".pkl"):
+        lower_name = f.lower()
+        if not any(
+            keyword in lower_name
+            for keyword in ["bundle", "scaler", "encoder", "pt", "cols"]
+        ):
+          files.append(f.replace(".pkl", ""))
+
+  return {"models": files, "count": len(files)}

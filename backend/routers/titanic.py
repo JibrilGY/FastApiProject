@@ -1,160 +1,125 @@
 import os
-import sys
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from pydantic import create_model
-from sklearn.base import BaseEstimator, TransformerMixin
-
-
-# 1. Eksik verilerde hata vermeyen, güvenli Feature Engineer sınıfı
-class TitanicFeatureEngineer(BaseEstimator, TransformerMixin):
-
-  def __init__(self):
-    self.age_median_ = None
-    self.fare_median_ = None
-    self.feature_names_in_ = None
-
-  def fit(self, X, y=None):
-    self.age_median_ = X["Age"].median() if "Age" in X.columns else 28.0
-    self.fare_median_ = X["Fare"].median() if "Fare" in X.columns else 14.4
-    self.feature_names_in_ = X.columns.tolist()
-    return self
-
-  def transform(self, X):
-    df = X.copy()
-
-    # Title Extraction (Name yoksa veya boşsa çökmesin, "Unknown" versin)
-    if "Name" in df.columns and df["Name"].notna().any():
-      df["Title"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
-      df["Title"] = df["Title"].fillna("Unknown")
-      df["Title"] = df["Title"].replace(
-          [
-              "Lady",
-              "Countess",
-              "Capt",
-              "Col",
-              "Don",
-              "Dr",
-              "Major",
-              "Rev",
-              "Sir",
-              "Jonkheer",
-              "Dona",
-          ],
-          "Rare",
-      )
-      df["Title"] = df["Title"].replace(
-          {"Mlle": "Miss", "Ms": "Miss", "Mme": "Mrs"}
-      )
-    else:
-      df["Title"] = "Unknown"
-
-    # Family Size & IsAlone
-    sibsp = (
-        df["SibSp"] if "SibSp" in df.columns else pd.Series(0, index=df.index)
-    )
-    parch = (
-        df["Parch"] if "Parch" in df.columns else pd.Series(0, index=df.index)
-    )
-    df["FamilySize"] = sibsp.fillna(0) + parch.fillna(0) + 1
-    df["IsAlone"] = (df["FamilySize"] == 1).astype(int)
-
-    # Deck Extraction (Cabin yoksa "U" versin)
-    if "Cabin" in df.columns and df["Cabin"].notna().any():
-      df["Deck"] = df["Cabin"].fillna("U").astype(str).str[0]
-      df["Deck"] = df["Deck"].replace("T", "U")
-    else:
-      df["Deck"] = "U"
-
-    # Eksik yaş ve ücretleri doldurma
-    if "Age" in df.columns:
-      df["Age"] = df["Age"].fillna(
-          self.age_median_ if self.age_median_ is not None else 28.0
-      )
-    else:
-      df["Age"] = 28.0
-
-    if "Fare" in df.columns:
-      df["Fare"] = df["Fare"].fillna(
-          self.fare_median_ if self.fare_median_ is not None else 14.4
-      )
-    else:
-      df["Fare"] = 14.4
-
-    required_features = [
-        "Pclass",
-        "Sex",
-        "Age",
-        "Fare",
-        "FamilySize",
-        "IsAlone",
-        "Title",
-        "Deck",
-    ]
-
-    # Garanti olması için eksik kalan kolon varsa oluşturalım
-    for col in required_features:
-      if col not in df.columns:
-        df[col] = 0 if col != "Sex" else "male"
-
-    return df[required_features]
-
-
-# Uvicorn / Pickle Modül Eşlemesi
-sys.modules["__main__"].TitanicFeatureEngineer = TitanicFeatureEngineer
-if "__mp_main__" in sys.modules:
-  sys.modules["__mp_main__"].TitanicFeatureEngineer = TitanicFeatureEngineer
+from app_schemas import TitanicInput
 
 router = APIRouter(prefix="/titanic", tags=["Titanic Model"])
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "titanic_pipeline.pkl")
+BUNDLE_PATH = os.path.join(
+    BASE_DIR, "models", "titanic", "titanic_data_bundle.pkl"
+)
+MODEL_PATH = os.path.join(
+    BASE_DIR, "models", "titanic", "logistic_regression_model.pkl"
+)
 
-pipeline = None
-TitanicInput = create_model("TitanicInput")
+bundle = None
+model = None
 
 try:
-  pipeline = joblib.load(MODEL_PATH)
-  raw_features = [
-      "Pclass",
-      "Sex",
-      "Age",
-      "Fare",
-      "SibSp",
-      "Parch",
-      "Name",
-      "Cabin",
-  ]
-  field_definitions = {field: (object, None) for field in raw_features}
-  TitanicInput = create_model("TitanicInput", **field_definitions)
-  print("✅ Titanic modeli ve girdi şeması başarıyla yüklendi!")
-
+    bundle = joblib.load(BUNDLE_PATH)
+    if os.path.exists(MODEL_PATH):
+        model = joblib.load(MODEL_PATH)
+    print("✅ Titanic data bundle and model successfully loaded!")
 except Exception as e:
-  print(f"❌ Titanic Yükleme Hatası: {e}")
-  pipeline = None
-  TitanicInput = create_model("TitanicInput")
+    print(f"❌ Titanic Loading Error: {e}")
+
+
+def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
+    df = pd.DataFrame([data_dict])
+
+    # 1. Varsayılan Değer Atamaları
+    df["Title"] = df["Title"].fillna("Mr")
+    df["Cabin"] = df["Cabin"].fillna("None")
+    df["Ticket"] = df["Ticket"].fillna("None")
+
+    df["Cabin_Deck"] = (
+        df["Cabin"].str[0].fillna("U")
+        if "Cabin" in df.columns and df["Cabin"].notna().any()
+        else "U"
+    )
+
+    # Gereksiz sütunları düşür
+    df = df.drop(
+        columns=[col for col in ["Cabin", "Ticket"] if col in df.columns]
+    )
+
+    # 2. Eksik Değer Doldurma (Eğitim Seti İstatistikleri ile)
+    title_medians = bundle.get("title_medians")
+    if title_medians is not None:
+        df["Age"] = df["Age"].fillna(df["Title"].map(title_medians))
+    df["Age"] = df["Age"].fillna(bundle.get("age_median", 28.0))
+    df["Embarked"] = df["Embarked"].fillna(bundle.get("embarked_mode", "S"))
+
+    for col in ["Fare", "SibSp", "Parch", "Pclass"]:
+        if col in df.columns:
+            df[col] = df[col].fillna(0)
+
+    # 3. Kategorik Kodlama (Sadece bundle içindeki pre-fitted encoders kullanılıyor)
+    encoders = bundle.get("encoders", {})
+    encoded_list = []
+    cat_cols = [col for col in encoders.keys() if col in df.columns]
+
+    for col in cat_cols:
+        encoder = encoders[col]
+        arr = encoder.transform(df[[col]])
+        encoded_df = pd.DataFrame(
+            arr, columns=encoder.get_feature_names_out([col]), index=df.index
+        )
+        encoded_list.append(encoded_df)
+
+    # Orijinal kategorik sütunları düşürüp encoder çıktılarını ekle
+    df_encoded = pd.concat(
+        [
+            df.drop(columns=cat_cols, errors="ignore"),
+            pd.concat(encoded_list, axis=1)
+            if encoded_list
+            else pd.DataFrame(index=df.index),
+        ],
+        axis=1,
+    )
+
+    # (NOT: Tek satırlık inference'da pd.get_dummies drop_first hataya yol açtığı için kaldırıldı)
+
+    # 4. Yeo-Johnson Transformation (Eğer bundle içinde mevcutsa)
+    numerical_cols = ["Pclass", "Age", "SibSp", "Parch", "Fare"]
+    if bundle.get("power_transformer") and all(
+        col in df_encoded.columns for col in numerical_cols
+    ):
+        df_encoded[numerical_cols] = bundle["power_transformer"].transform(
+            df_encoded[numerical_cols]
+        )
+
+    # 5. Modelin Seçtiği Top 5 Özellik ile Kesin Hizalama (Reindex)
+    selected_features = bundle["selected_features"]
+    df_aligned = df_encoded.reindex(columns=selected_features, fill_value=0)
+
+    # 6. StandardScaler ile Ölçeklendirme
+    scaled_array = bundle["scaler"].transform(df_aligned)
+    X_final = pd.DataFrame(scaled_array, columns=selected_features)
+
+    return X_final
 
 
 @router.post("/predict")
 def predict_titanic(data: TitanicInput):
-  if not pipeline:
-    raise HTTPException(
-        status_code=500, detail="Titanic modeli yüklenemedi!"
-    )
+    if not bundle or not model:
+        raise HTTPException(
+            status_code=500, detail="Titanic bundle or model could not be loaded!"
+        )
 
-  try:
-    input_df = pd.DataFrame([data.model_dump()])
-    prediction = pipeline.predict(input_df)[0]
-    probability = pipeline.predict_proba(input_df)[0].tolist()
-
-    return {
-        "status": "success",
-        "prediction": int(prediction),
-        "probability": {
-            "survived": round(probability[1], 4),
-            "did_not_survive": round(probability[0], 4),
-        },
-    }
-  except Exception as e:
-    raise HTTPException(status_code=400, detail=str(e))
+    try:
+        processed_df = preprocess_input(data.model_dump(), bundle)
+        prediction = model.predict(processed_df)[0]
+        probability = model.predict_proba(processed_df)[0].tolist()
+        return {
+            "status": "success",
+            "prediction": int(prediction),
+            "probability": {
+                "survived": round(probability[1], 4),
+                "did_not_survive": round(probability[0], 4),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

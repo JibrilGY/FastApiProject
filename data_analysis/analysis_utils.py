@@ -4,9 +4,9 @@ import pandas as pd
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif
-from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, PolynomialFeatures
+from sklearn.preprocessing import PowerTransformer
 
 
 # 1. General Structure, Types and Missing Value Analysis
@@ -390,12 +390,6 @@ def calculate_and_plot_mutual_information(df, target_col):
 
 
 def analyze_mixed_feature_relations(df, target_col, threshold=0.01):
-  """Calculates relationships with the target variable using Mutual
-
-  Information in datasets containing both numerical and categorical (string)
-  columns. Provides an alternative analysis without breaking the original
-  correlation function.
-  """
   # 1. Quantify categorical features using One-Hot Encoding
   X_processed, y_raw = handle_categorical_features(df, target_col=target_col)
 
@@ -454,3 +448,24 @@ def select_best_features_anova_string(X, y, k=5):
   ]
 
   return selected_features
+
+def apply_yeo_johnson(X_train, X_test, numerical_cols=None):
+  # Eğer dışarıdan bir liste verilmediyse, dosya içindeki global listeyi kullan
+  if numerical_cols is None:
+    cols_to_use = globals().get("numerical_cols")
+  else:
+    cols_to_use = numerical_cols
+
+  pt = PowerTransformer(method="yeo-johnson", standardize=False)
+  X_train_transformed = X_train.copy()
+  X_test_transformed = X_test.copy()
+
+  # BURASI DİKKAT: numerical_cols yerine cols_to_use kullanmalısın
+  X_train_transformed[cols_to_use] = pt.fit_transform(X_train[cols_to_use])
+  X_test_transformed[cols_to_use] = pt.transform(X_test[cols_to_use])
+
+  print(
+      "7. Yeo-Johnson transformation is applied successfully and test set is"
+      " protected (Data Leakage is blocked)."
+  )
+  return X_train_transformed, X_test_transformed, pt

@@ -2,7 +2,7 @@ import os
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from schemas import DrugInput
+from app_schemas import DrugInput
 
 router = APIRouter(prefix="/drug", tags=["Drug Model"])
 

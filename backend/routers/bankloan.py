@@ -2,7 +2,7 @@ import os
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from schemas import StandardResponse, BankloanInput
+from app_schemas import StandardResponse, BankloanInput
 
 router = APIRouter(prefix="/bankloan", tags=["Bankloan Model"])
 
