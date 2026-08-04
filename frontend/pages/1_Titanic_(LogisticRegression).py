@@ -16,7 +16,6 @@ with col1:
         format_func=lambda x: "Male" if x == "male" else "Female",
     )
 
-    # Cinsiyete göre akıllı ünvan (Title) seçimi
     if sex == "male":
         title_options = ["Mr", "Master", "Rare"]
     else:
@@ -30,11 +29,24 @@ with col1:
 with col2:
     fare = st.slider("Fare (Ücret)", 0.0, 500.0, 32.2, 1.0)
 
-    cabin = st.text_input(
-        "Cabin Number (Deck Extraction)",
-        "",
-        help="e.g., C123 (Leave blank for Unknown/U deck)",
+    deck_options = {
+        "Unknown / No Cabin (U)": "U",
+        "Deck A": "A",
+        "Deck B": "B",
+        "Deck C": "C",
+        "Deck D": "D",
+        "Deck E": "E",
+        "Deck F": "F",
+        "Deck G": "G",
+        "Deck T": "T",
+    }
+
+    selected_deck_label = st.selectbox(
+        "Cabin Deck (Güverte)",
+        list(deck_options.keys()),
+        help="Titanic passenger deck derived from cabin numbers.",
     )
+    cabin_letter = deck_options[selected_deck_label]
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -48,7 +60,7 @@ if st.button("Predict 🔍", use_container_width=True, type="primary"):
         "Parch": 0,
         "Ticket": "None",
         "Fare": fare,
-        "Cabin": cabin if cabin.strip() != "" else "None",
+        "Cabin": cabin_letter,
         "Embarked": "S",
     }
 

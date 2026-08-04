@@ -29,7 +29,6 @@ except Exception as e:
 def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
     df = pd.DataFrame([data_dict])
 
-    # 1. Varsayılan Değer Atamaları
     df["Title"] = df["Title"].fillna("Mr")
     df["Cabin"] = df["Cabin"].fillna("None")
     df["Ticket"] = df["Ticket"].fillna("None")
@@ -40,12 +39,10 @@ def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
         else "U"
     )
 
-    # Gereksiz sütunları düşür
     df = df.drop(
         columns=[col for col in ["Cabin", "Ticket"] if col in df.columns]
     )
 
-    # 2. Eksik Değer Doldurma (Eğitim Seti İstatistikleri ile)
     title_medians = bundle.get("title_medians")
     if title_medians is not None:
         df["Age"] = df["Age"].fillna(df["Title"].map(title_medians))
@@ -56,7 +53,6 @@ def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].fillna(0)
 
-    # 3. Kategorik Kodlama (Sadece bundle içindeki pre-fitted encoders kullanılıyor)
     encoders = bundle.get("encoders", {})
     encoded_list = []
     cat_cols = [col for col in encoders.keys() if col in df.columns]
@@ -69,7 +65,6 @@ def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
         )
         encoded_list.append(encoded_df)
 
-    # Orijinal kategorik sütunları düşürüp encoder çıktılarını ekle
     df_encoded = pd.concat(
         [
             df.drop(columns=cat_cols, errors="ignore"),
@@ -80,9 +75,6 @@ def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
         axis=1,
     )
 
-    # (NOT: Tek satırlık inference'da pd.get_dummies drop_first hataya yol açtığı için kaldırıldı)
-
-    # 4. Yeo-Johnson Transformation (Eğer bundle içinde mevcutsa)
     numerical_cols = ["Pclass", "Age", "SibSp", "Parch", "Fare"]
     if bundle.get("power_transformer") and all(
         col in df_encoded.columns for col in numerical_cols
@@ -91,11 +83,14 @@ def preprocess_input(data_dict: dict, bundle: dict) -> pd.DataFrame:
             df_encoded[numerical_cols]
         )
 
-    # 5. Modelin Seçtiği Top 5 Özellik ile Kesin Hizalama (Reindex)
+    if "Cabin_Deck" in df.columns:
+        df_encoded["Cabin_Deck_U"] = (df["Cabin_Deck"] == "U").astype(int)
+    else:
+        df_encoded["Cabin_Deck_U"] = 1
+
     selected_features = bundle["selected_features"]
     df_aligned = df_encoded.reindex(columns=selected_features, fill_value=0)
 
-    # 6. StandardScaler ile Ölçeklendirme
     scaled_array = bundle["scaler"].transform(df_aligned)
     X_final = pd.DataFrame(scaled_array, columns=selected_features)
 
@@ -111,7 +106,9 @@ def predict_titanic(data: TitanicInput):
 
     try:
         processed_df = preprocess_input(data.model_dump(), bundle)
-        prediction = model.predict(processed_df)[0]
+        CUSTOM_THRESHOLD = 0.7
+        probability = model.predict_proba(processed_df)[0].tolist()
+        prediction = 1 if probability[1] >= CUSTOM_THRESHOLD else 0
         probability = model.predict_proba(processed_df)[0].tolist()
         return {
             "status": "success",

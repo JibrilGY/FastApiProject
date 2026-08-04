@@ -55,7 +55,7 @@ class DrugInput(BaseModel):
 
 class TitanicInput(BaseModel):
   Pclass: int
-  Title: str  # İsim yerine doğrudan ünvanı alıyoruz
+  Title: str
   Sex: str
   Age: float
   SibSp: int
