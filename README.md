@@ -61,10 +61,11 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 ### 3. Start the FastAPI Backend Server
+Navigate to the backend directory and start the server:
 ```bash
+cd backend
 uvicorn main:app --reload
 
-(The backend will run on http://localhost:8000 by default.)
 ### 4. Start the Streamlit Frontend
 ```bash
 Open a new terminal and run:
