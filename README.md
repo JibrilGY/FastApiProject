@@ -51,8 +51,8 @@ Follow the steps below to run the project locally:
 
 ### 1. Clone the Repository and Create a Virtual Environment
 ```bash
-git clone <repository-url>
-cd <project-folder>
+git clone https://github.com/JibrilGY/FastApiProject.git
+cd FastApiProject
 python -m venv venv
 source venv/bin/activate  # For Windows: venv\Scripts\activate
 
@@ -65,6 +65,7 @@ cd backend
 uvicorn main:app --reload
 
 ### 4. Start the Streamlit Frontend
-Open a new terminal and run:
-
+Open a new terminal
+Navigate to the frontend directory and run:
+cd frontend
 streamlit run app.py
