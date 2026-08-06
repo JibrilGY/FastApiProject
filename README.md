@@ -55,17 +55,21 @@ git clone https://github.com/JibrilGY/FastApiProject.git
 cd FastApiProject
 python -m venv venv
 source venv/bin/activate  # For Windows: venv\Scripts\activate
+```
 
-### 2. Install Dependencies
+2. Install Dependencies
+```bash
 pip install -r requirements.txt
+```
 
-### 3. Start the FastAPI Backend Server
-Navigate to the backend directory and start the server:
+3. Start the FastAPI Backend Server
+```bash
 cd backend
 uvicorn main:app --reload
+```
 
-### 4. Start the Streamlit Frontend
-Open a new terminal
-Navigate to the frontend directory and run:
+4. Start the Streamlit Frontend
+```bash
 cd frontend
-streamlit run app.py
+streamlit run App.py
+```
